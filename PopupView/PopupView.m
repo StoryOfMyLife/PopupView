@@ -30,7 +30,7 @@ static const CGFloat arrowGap = cornerRadius + kArrowHeight/2;
 
 @implementation PopupView
 
-- (instancetype)initWithArrowPoint:(CGPoint)arrowPoint contentSize:(CGSize)contentSize inView:(UIView *)view
+- (instancetype)initWithArrowPoint:(CGPoint)arrowPoint arrowOffset:(CGFloat)offset contentSize:(CGSize)contentSize inView:(UIView *)view
 {
     //限定宽度
     CGFloat width = MIN(view.width - borderGap * 2, contentSize.width);
@@ -50,11 +50,12 @@ static const CGFloat arrowGap = cornerRadius + kArrowHeight/2;
         x = MIN(view.width - width, MAX(arrowPoint.x + arrowGap - width, (view.width - width) / 2));
     }
     
-    if (arrowPoint.y <= view.height/2) {
-        self = [self initWithFrame:CGRectMake(x, arrowPoint.y, width, height)];
+    //PopupView显示在空间较多处
+    if (arrowPoint.y <= view.height / 2) {
+        self = [self initWithFrame:CGRectMake(x, arrowPoint.y + offset, width, height)];
         self.direction = ArrowDirectionUp;
     } else {
-        self = [self initWithFrame:CGRectMake(x, arrowPoint.y - height, width, height)];
+        self = [self initWithFrame:CGRectMake(x, arrowPoint.y - offset - height, width, height)];
         self.direction = ArrowDirectionDown;
     }
     self.arrowOffsetX = arrowPoint.x - x;
@@ -62,11 +63,15 @@ static const CGFloat arrowGap = cornerRadius + kArrowHeight/2;
     return self;
 }
 
+- (instancetype)initWithArrowPoint:(CGPoint)arrowPoint contentSize:(CGSize)contentSize inView:(UIView *)view
+{
+    return [self initWithArrowPoint:arrowPoint arrowOffset:0 contentSize:contentSize inView:view];
+}
+
 - (instancetype)initWithFrame:(CGRect)frame
 {
     if (self = [super initWithFrame:frame]) {
         self.layer.cornerRadius = cornerRadius;
-        
         self.mask = [[CAShapeLayer alloc] init];
         [self.layer addSublayer:self.mask];
         
@@ -75,6 +80,8 @@ static const CGFloat arrowGap = cornerRadius + kArrowHeight/2;
         
         self.contentView = [[UIView alloc] init];
         self.contentView.backgroundColor = [UIColor clearColor];
+        self.contentView.layer.cornerRadius = cornerRadius;
+        self.contentView.clipsToBounds = YES;
         
         [self addSubview:self.contentView];
     }
@@ -112,13 +119,13 @@ static const CGFloat arrowGap = cornerRadius + kArrowHeight/2;
 - (void)setupMaskPath
 {
     /*
-        LT2           RT1
+     LT2           RT1
      LT1⌜⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⎺⌝RT2
-        |               |
-        |    popover    |
-        |               |
+     |               |
+     |    popover    |
+     |               |
      LB2⌞_______________⌟RB1
-        LB1           RB2
+     LB1           RB2
      
      Traverse rectangle in clockwise order, starting at LT1
      L = Left
